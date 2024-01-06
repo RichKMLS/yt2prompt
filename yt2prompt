@@ -1,0 +1,33 @@
+#!/bin/bash
+
+VideoURL=$1
+
+python3 yt-dlp --write-auto-sub --skip-download --output "subtitle" "$VideoURL"
+
+wait
+
+ytclipboard=""
+
+# Read the file into a variable
+file_content=$(cat subtitle.en.vtt)
+
+# Remove "WEBVTT Kind: captions Language: en", timestamps, <c> tags, timestamp lines, and any text in brackets
+cleaned_content=$(echo -e "$file_content" | \
+	sed -E 's/<[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3}>//g' | \
+	sed 's/<c>//g' | sed 's/<\/c>//g' | \
+	sed -n '/-->/!p' | sed 's/\[[^]]*\]//g')
+
+# Concatenate all script lines into a single line
+single_line=$(echo -e "$cleaned_content" | \
+	tr '\n' ' ' | \
+	sed 's/  */ /g' | \
+	sed "s/WEBVTT Kind: captions Language: en //")
+
+# Remove the subtitle file
+rm subtitle.en.vtt
+
+# Print the single line (basic prompt)
+ytclipboard="\`\`\` $single_line \`\`\` Please rewrite the above to be easy to read and understand, thanks:"
+
+# Add $single_line to the clipboard
+echo -n "$ytclipboard" | xclip -selection clipboard
